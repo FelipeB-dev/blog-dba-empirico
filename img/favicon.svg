@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Favicon: iniciales FB (Felipe Baquero) con los colores del sitio -->
+  <rect x="2" y="2" width="60" height="60" fill="#f5f2eb" stroke="#22201c" stroke-width="4"/>
+  <text x="32" y="43" text-anchor="middle"
+        font-family="Georgia, 'Times New Roman', serif" font-size="32" font-weight="700"
+        letter-spacing="-1" fill="#22201c">FB</text>
+  <!-- Subrayado rojo "lápiz de corrección" -->
+  <rect x="14" y="49" width="36" height="4" fill="#b5441b"/>
+</svg>

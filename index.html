@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <!-- Metadatos básicos -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Diario de un DBA empírico</title>
+  <meta name="description" content="Lo que 11 años en producción me enseñaron de Oracle y PL/SQL: cursores, índices y manejo de errores, contado desde el soporte de una operación 7x24.">
+
+  <!-- Favicon: iniciales FB -->
+  <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+
+  <!-- Tipografías -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,700;1,8..60,400&amp;display=swap">
+
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/main.js"></script>
+</head>
+<body>
+  <a class="saltar" href="#contenido">Saltar al contenido</a>
+
+  <header class="sitio-cabecera">
+    <div class="contenedor">
+      <a class="marca" href="index.html">
+        <span class="marca-nombre">Diario de un DBA empírico</span>
+        <span class="marca-sub">11 años en producción · Oracle · PL/SQL</span>
+      </a>
+      <nav class="menu" aria-label="Menú principal">
+        <ul>
+          <li><a href="index.html" aria-current="page">Inicio</a></li>
+          <li><a href="#entradas">Entradas</a></li>
+          <li><a href="about.html">Sobre mí</a></li>
+          <li><button class="btn-tema" type="button">modo noche</button></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="contenido" class="contenedor">
+    <!-- PRESENTACIÓN: texto + foto -->
+    <section class="presentacion presentacion--foto">
+      <div class="presentacion-texto">
+        <span class="antetitulo">Bitácora técnica</span>
+        <h1>Lo que 11 años en producción me enseñaron de Oracle</h1>
+        <p>Estoy terminando Ingeniería Informática, pero llevo 11 años dando soporte N2/N3 y desarrollando en PL/SQL para una operación de facturación que no se apaga nunca. Aquí apunto lo que aprendí a golpes.</p>
+      </div>
+      <!-- Foto propia, enlaza a "Sobre mí" -->
+      <a class="retrato retrato--inicio" href="about.html">
+        <img src="img/felipe.jpg" alt="Luis Felipe Baquero en su puesto de trabajo, con un gato en las piernas" width="420" height="600">
+      </a>
+    </section>
+
+    <!-- LISTADO DE ENTRADAS: una ficha por entrada -->
+    <h2 class="seccion-titulo" id="entradas">Entradas</h2>
+    <ul class="fichas">
+      <li class="ficha">
+        <div class="ficha-franja"><span class="num">Nº 01</span><span>pl/sql · rendimiento</span></div>
+        <div class="ficha-img"><img src="img/cursor-vs-bulk.svg" alt="Diagrama del cursor fila a fila frente a BULK COLLECT y FORALL" width="760" height="430" loading="lazy"></div>
+        <div class="ficha-cuerpo">
+          <h3><a href="posts/cursor-batch-3am.html">El cursor que tumbó un batch a las 3 a.m.</a></h3>
+          <p>Un cursor fila a fila, una noche de batch y por qué mover lotes en vez de filas cambia todo.</p>
+          <span class="ficha-pie">leer entrada → · 4 min</span>
+        </div>
+      </li>
+      <li class="ficha">
+        <div class="ficha-franja"><span class="num">Nº 02</span><span>índices · planes</span></div>
+        <div class="ficha-img"><img src="img/indice-btree.svg" alt="Diagrama de una búsqueda en un índice B-tree" width="760" height="430" loading="lazy"></div>
+        <div class="ficha-cuerpo">
+          <h3><a href="posts/indices-mas-es-peor.html">Índices: cuando "más" es peor</a></h3>
+          <p>Cómo funciona un índice B-tree, cuándo ayuda y por qué cada índice de más se paga en cada INSERT.</p>
+          <span class="ficha-pie">leer entrada → · 5 min</span>
+        </div>
+      </li>
+      <li class="ficha">
+        <div class="ficha-franja"><span class="num">Nº 03</span><span>excepciones · logging</span></div>
+        <div class="ficha-img"><img src="img/transaccion-autonoma.svg" alt="Diagrama de una transacción autónoma para registrar errores" width="760" height="430" loading="lazy"></div>
+        <div class="ficha-cuerpo">
+          <h3><a href="posts/errores-plsql.html">Errores de PL/SQL que todos cometemos (y yo también)</a></h3>
+          <p>WHEN OTHERS THEN NULL, logs que se pierden con el rollback y cómo dejar rastro con una transacción autónoma.</p>
+          <span class="ficha-pie">leer entrada → · 4 min</span>
+        </div>
+      </li>
+    </ul>
+
+  </main>
+
+  <!-- PIE DE PÁGINA: componente compartido, definido en js/main.js -->
+  <sitio-pie></sitio-pie>
+</body>
+</html>

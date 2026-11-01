@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 430" role="img" aria-labelledby="t d">
+  <title id="t">Cómo se busca un valor en un índice B-tree</title>
+  <desc id="d">Un índice B-tree con raíz, dos ramas y cuatro hojas. Para buscar id_cliente 1234 se baja de la raíz a la rama izquierda y a la primera hoja, y desde ahí los ROWID llevan directo a tres bloques de la tabla CONSUMOS.</desc>
+
+  <rect width="760" height="430" fill="#ffffff"/>
+  <style>
+    .n    { fill: #f5f2eb; stroke: #22201c; stroke-width: 1.5; }
+    .on   { fill: #fbe9e1; stroke: #b5441b; stroke-width: 2.5; }
+    .txt  { font-family: "IBM Plex Mono", "Courier New", monospace; font-size: 13px; fill: #22201c; }
+    .lbl  { font-family: "IBM Plex Mono", "Courier New", monospace; font-size: 11px; fill: #5f594f; }
+    .tit  { font-family: Georgia, "Times New Roman", serif; font-size: 15px; font-weight: 700; fill: #b5441b; }
+    .l    { stroke: #8d867a; stroke-width: 1.2; fill: none; }
+    .lon  { stroke: #b5441b; stroke-width: 2.5; fill: none; }
+    .blk  { fill: #ffffff; stroke: #8d867a; stroke-width: 1; }
+    .bon  { fill: #fbe9e1; stroke: #b5441b; stroke-width: 2; }
+  </style>
+
+  <!-- Etiquetas de nivel (izquierda) -->
+  <text class="lbl" x="20" y="52">raíz</text>
+  <text class="lbl" x="20" y="142">ramas</text>
+  <text class="lbl" x="20" y="226">hojas</text>
+  <text class="lbl" x="20" y="240">valor + ROWID</text>
+  <text class="lbl" x="20" y="332">tabla</text>
+  <text class="lbl" x="20" y="346">CONSUMOS</text>
+
+  <!-- Raíz -->
+  <rect class="on" x="330" y="28" width="160" height="40"/>
+  <text class="txt" x="410" y="53" text-anchor="middle">&lt; 2501 | ≥ 2501</text>
+
+  <!-- Ramas -->
+  <rect class="on" x="200" y="118" width="160" height="40"/>
+  <text class="txt" x="280" y="143" text-anchor="middle">&lt; 1251 | ≥ 1251</text>
+  <rect class="n" x="460" y="118" width="160" height="40"/>
+  <text class="txt" x="540" y="143" text-anchor="middle">&lt; 3751 | ≥ 3751</text>
+
+  <path class="lon" d="M380 68 L290 118"/>
+  <path class="l"   d="M440 68 L530 118"/>
+
+  <!-- Hojas -->
+  <rect class="on" x="135" y="208" width="135" height="40"/>
+  <text class="txt" x="202" y="233" text-anchor="middle">1 … 1250</text>
+  <rect class="n" x="285" y="208" width="135" height="40"/>
+  <text class="txt" x="352" y="233" text-anchor="middle">1251 … 2500</text>
+  <rect class="n" x="435" y="208" width="135" height="40"/>
+  <text class="txt" x="502" y="233" text-anchor="middle">2501 … 3750</text>
+  <rect class="n" x="585" y="208" width="135" height="40"/>
+  <text class="txt" x="652" y="233" text-anchor="middle">3751 … 5000</text>
+
+  <path class="lon" d="M250 158 L205 208"/>
+  <path class="l"   d="M310 158 L350 208"/>
+  <path class="l"   d="M510 158 L502 208"/>
+  <path class="l"   d="M570 158 L650 208"/>
+
+  <!-- Bloques de la tabla -->
+  <g>
+    <rect class="blk" x="135" y="318" width="60" height="34"/>
+    <rect class="bon" x="203" y="318" width="60" height="34"/>
+    <rect class="blk" x="271" y="318" width="60" height="34"/>
+    <rect class="blk" x="339" y="318" width="60" height="34"/>
+    <rect class="bon" x="407" y="318" width="60" height="34"/>
+    <rect class="blk" x="475" y="318" width="60" height="34"/>
+    <rect class="blk" x="543" y="318" width="60" height="34"/>
+    <rect class="bon" x="611" y="318" width="60" height="34"/>
+    <rect class="blk" x="679" y="318" width="40" height="34"/>
+  </g>
+
+  <!-- ROWID: de la hoja directo a los bloques -->
+  <path class="lon" d="M190 248 L233 318" stroke-dasharray="5 4"/>
+  <path class="lon" d="M215 248 L437 318" stroke-dasharray="5 4"/>
+  <path class="lon" d="M240 248 L641 318" stroke-dasharray="5 4"/>
+
+  <text class="tit" x="380" y="395" text-anchor="middle">WHERE id_cliente = 1234</text>
+  <text class="lbl" x="380" y="415" text-anchor="middle">3 saltos dentro del índice y luego directo a los bloques que tienen esas filas</text>
+</svg>

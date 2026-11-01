@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Página no encontrada | Diario de un DBA empírico</title>
+  <meta name="description" content="La página que buscas no existe.">
+
+  <!-- Favicon: iniciales FB -->
+  <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
+
+  <!-- Tipografías -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,700;1,8..60,400&amp;display=swap">
+
+  <link rel="stylesheet" href="/css/styles.css">
+  <script src="/js/main.js"></script>
+</head>
+<body>
+  <a class="saltar" href="#contenido">Saltar al contenido</a>
+
+  <header class="sitio-cabecera">
+    <div class="contenedor">
+      <a class="marca" href="/index.html">
+        <span class="marca-nombre">Diario de un DBA empírico</span>
+        <span class="marca-sub">11 años en producción · Oracle · PL/SQL</span>
+      </a>
+      <nav class="menu" aria-label="Menú principal">
+        <ul>
+          <li><a href="/index.html">Inicio</a></li>
+          <li><a href="/index.html#entradas">Entradas</a></li>
+          <li><a href="/about.html">Sobre mí</a></li>
+          <li><button class="btn-tema" type="button">modo noche</button></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="contenido" class="contenedor">
+    <article class="entrada">
+      <header class="entrada-cabecera">
+        <span class="antetitulo">ORA-01403 · no data found</span>
+        <h1>Esta página no existe</h1>
+        <p class="entrada-meta"><span>error 404</span></p>
+      </header>
+      <div class="entrada-cuerpo">
+        <p>La consulta no devolvió filas. Puede que el enlace esté mal escrito o que la página se haya movido.</p>
+      </div>
+      <p class="volver"><a href="/index.html">↑ Volver al inicio</a></p>
+    </article>
+  </main>
+
+  <!-- PIE DE PÁGINA: componente compartido, definido en js/main.js -->
+  <sitio-pie></sitio-pie>
+</body>
+</html>

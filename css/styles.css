@@ -1,0 +1,585 @@
+/* ==========================================================================
+   Diario de un DBA empírico — hoja de estilos principal
+   --------------------------------------------------------------------------
+   Idea visual: un cuaderno de ingeniero. Papel cálido, tinta oscura y un
+   único acento rojo "lápiz de corrección". Texto en serif para leer
+   cómodo; datos (fechas, números, etiquetas) en monoespaciada, como si
+   fueran líneas de un log.
+
+   Orden del archivo:
+     1. Variables (colores, tipografía, medidas)
+     2. Modo oscuro
+     3. Reset y base
+     4. Cabecera y menú
+     5. Portada (index): presentación y fichas de entradas
+     6. Entrada (post): cabecera, cuerpo, notas al margen
+     7. Código SQL y resaltado
+     8. Figuras, tablas y video
+     9. Navegación entre entradas
+    10. Pie de página
+    11. Utilidades y accesibilidad
+    12. Pantallas medianas y grandes (móvil primero)
+   ========================================================================== */
+
+
+/* 1. VARIABLES ------------------------------------------------------------ */
+:root {
+  /* Colores del modo claro */
+  --papel: #f5f2eb;          /* fondo general */
+  --papel-2: #ece7dc;        /* fondo de cajas y notas */
+  --tinta: #22201c;          /* texto principal */
+  --tinta-suave: #5f594f;    /* texto secundario */
+  --linea: #d3cbbb;          /* bordes y separadores */
+  --acento: #b5441b;         /* rojo lápiz: enlaces y detalles */
+  --acento-2: #2f5d50;       /* verde apagado: etiquetas */
+
+  /* Bloques de código: siempre oscuros, como una terminal */
+  --codigo-fondo: #1f1e1b;
+  --codigo-texto: #e8e2d4;
+  --tk-kw: #e0a458;          /* palabras clave: SELECT, BEGIN... */
+  --tk-str: #a9c79f;         /* cadenas de texto */
+  --tk-com: #8d867a;         /* comentarios */
+  --tk-num: #e08f6f;         /* números */
+  --tk-fn: #93b8cc;          /* funciones y tipos */
+
+  /* Tipografía (Google Fonts, cargadas en cada HTML) */
+  --f-texto: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --f-mono: "IBM Plex Mono", "Courier New", monospace;
+
+  /* Medidas */
+  --ancho-texto: 68ch;       /* largo de línea cómodo para leer */
+  --ancho-sitio: 72rem;
+  --gutter: 1rem;
+}
+
+
+/* 2. MODO OSCURO -----------------------------------------------------------
+   Se activa solo si el sistema lo pide (prefers-color-scheme) o si el
+   lector pulsa el botón "modo noche" (js/main.js pone data-theme).      */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --papel: #191816;
+    --papel-2: #23211e;
+    --tinta: #e6e1d6;
+    --tinta-suave: #a59f92;
+    --linea: #3b3833;
+    --acento: #e2805a;
+    --acento-2: #86b8a7;
+    --codigo-fondo: #0f0f0e;
+  }
+}
+:root[data-theme="dark"] {
+  --papel: #191816;
+  --papel-2: #23211e;
+  --tinta: #e6e1d6;
+  --tinta-suave: #a59f92;
+  --linea: #3b3833;
+  --acento: #e2805a;
+  --acento-2: #86b8a7;
+  --codigo-fondo: #0f0f0e;
+}
+
+
+/* 3. RESET Y BASE --------------------------------------------------------- */
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--papel);
+  color: var(--tinta);
+  font-family: var(--f-texto);
+  font-size: 1.0625rem;      /* 17px: la serif se lee mejor un poco grande */
+  line-height: 1.65;
+}
+
+img, svg, video, iframe { max-width: 100%; display: block; }
+
+h1, h2, h3 {
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 2rem 0 0.75rem;
+}
+h1 { font-size: 2rem; }
+h2 { font-size: 1.45rem; }
+h3 { font-size: 1.15rem; }
+
+p { margin: 0 0 1.1rem; }
+
+a {
+  color: var(--acento);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+a:hover { text-decoration-thickness: 2px; }
+
+::selection { background: var(--acento); color: var(--papel); }
+
+/* Contenedor centrado con margen lateral de 16px en móvil */
+.contenedor {
+  width: 100%;
+  max-width: var(--ancho-sitio);
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+}
+
+
+/* 4. CABECERA Y MENÚ -------------------------------------------------------
+   Doble línea inferior, como el cabezote de un periódico viejo.          */
+.sitio-cabecera {
+  border-bottom: 3px double var(--tinta);
+  padding: 1.25rem 0 0.75rem;
+}
+
+.sitio-cabecera .contenedor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.marca {
+  color: var(--tinta);
+  text-decoration: none;
+  display: block;
+}
+.marca-nombre {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.marca-sub {
+  display: block;
+  font-family: var(--f-mono);
+  font-size: 0.75rem;
+  color: var(--tinta-suave);
+  margin-top: 0.3rem;
+}
+
+.menu ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 1.25rem;
+  font-family: var(--f-mono);
+  font-size: 0.85rem;
+}
+.menu a {
+  color: var(--tinta);
+  text-decoration: none;
+  padding: 0.25rem 0;
+  border-bottom: 2px solid transparent;
+}
+.menu a:hover { border-bottom-color: var(--linea); }
+/* Página actual: subrayado rojo (se marca con aria-current en el HTML) */
+.menu a[aria-current="page"] { border-bottom-color: var(--acento); }
+
+/* Botón de modo noche: texto, sin íconos */
+.btn-tema {
+  font: inherit;
+  color: var(--tinta-suave);
+  background: none;
+  border: 1px solid var(--linea);
+  padding: 0.2rem 0.6rem;
+  cursor: pointer;
+}
+.btn-tema:hover { color: var(--tinta); border-color: var(--tinta-suave); }
+
+
+/* 5. PORTADA ---------------------------------------------------------------- */
+.presentacion {
+  padding: 2.5rem 0 1.5rem;
+  max-width: var(--ancho-texto);
+}
+.presentacion h1 { margin-top: 0; font-size: 2.1rem; }
+.presentacion p { color: var(--tinta-suave); font-size: 1.1rem; }
+
+/* Presentación con foto: en móvil la foto va debajo, pequeña;
+   en pantallas medianas se pone a la derecha del texto (ver sección 12). */
+.presentacion--foto { max-width: none; display: grid; gap: 1.5rem; }
+.presentacion-texto { max-width: var(--ancho-texto); }
+.retrato.retrato--inicio {
+  display: block;
+  max-width: 10rem;
+  margin: 0;
+  transform: rotate(2deg);
+}
+.retrato.retrato--inicio:hover { transform: rotate(0deg); }
+
+/* Etiqueta pequeña en mono encima de títulos ("Entrada Nº 01", etc.) */
+.antetitulo {
+  display: block;
+  font-family: var(--f-mono);
+  font-size: 0.78rem;
+  color: var(--acento);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.5rem;
+}
+
+.seccion-titulo {
+  font-family: var(--f-mono);
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--tinta-suave);
+  border-top: 1px solid var(--tinta);
+  padding-top: 0.6rem;
+  margin: 2rem 0 1.25rem;
+}
+
+/* Fichas de entradas: inspiradas en las fichas de biblioteca.
+   Esquinas rectas, borde fino y una franja superior con número y fecha. */
+.fichas {
+  list-style: none;
+  margin: 0 0 3rem;
+  padding: 0;
+  display: grid;
+  gap: 1.5rem;
+}
+
+.ficha {
+  background: var(--papel);
+  border: 1px solid var(--tinta);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+/* Al pasar el mouse la ficha "se levanta" del montón */
+.ficha:hover {
+  transform: translate(-3px, -3px);
+  box-shadow: 4px 4px 0 var(--tinta);
+}
+
+.ficha-franja {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--f-mono);
+  font-size: 0.75rem;
+  color: var(--tinta-suave);
+  border-bottom: 1px solid var(--linea);
+  padding: 0.45rem 0.9rem;
+}
+.ficha-franja .num { color: var(--acento); font-weight: 600; }
+
+.ficha-img {
+  border-bottom: 1px solid var(--linea);
+  background: var(--papel-2);
+}
+.ficha-img { background: #fff; }
+.ficha-img img { width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: contain; padding: 0.5rem; }
+
+.ficha-cuerpo { padding: 1rem 0.9rem 1.1rem; flex: 1; display: flex; flex-direction: column; }
+.ficha h3 { margin: 0 0 0.5rem; font-size: 1.2rem; }
+.ficha h3 a { color: var(--tinta); text-decoration: none; }
+/* El enlace del título cubre toda la ficha para que sea fácil de tocar en el móvil */
+.ficha h3 a::after { content: ""; position: absolute; inset: 0; }
+.ficha { position: relative; }
+.ficha p { font-size: 0.98rem; color: var(--tinta-suave); margin-bottom: 0.9rem; }
+.ficha-pie {
+  margin-top: auto;
+  font-family: var(--f-mono);
+  font-size: 0.78rem;
+  color: var(--acento);
+}
+
+
+/* 6. ENTRADA ---------------------------------------------------------------- */
+.entrada { padding: 2rem 0 1rem; }
+
+.entrada-cabecera { max-width: var(--ancho-texto); margin-bottom: 2rem; }
+.entrada-cabecera h1 { margin-top: 0; }
+
+/* Línea de datos debajo del título, estilo log */
+.entrada-meta {
+  font-family: var(--f-mono);
+  font-size: 0.8rem;
+  color: var(--tinta-suave);
+  border-top: 1px solid var(--linea);
+  border-bottom: 1px solid var(--linea);
+  padding: 0.5rem 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.25rem;
+}
+
+.entrada-cuerpo { max-width: var(--ancho-texto); }
+.entrada-cuerpo > p:first-of-type { font-size: 1.15rem; }
+
+.entrada-cuerpo ul,
+.entrada-cuerpo ol { padding-left: 1.3rem; margin: 0 0 1.1rem; }
+.entrada-cuerpo li { margin-bottom: 0.35rem; }
+
+.entrada-cuerpo blockquote {
+  margin: 1.5rem 0;
+  padding: 0 0 0 1rem;
+  border-left: 3px solid var(--acento);
+  font-style: italic;
+  color: var(--tinta-suave);
+}
+
+/* Código dentro de un párrafo */
+:not(pre) > code {
+  font-family: var(--f-mono);
+  font-size: 0.88em;
+  background: var(--papel-2);
+  border: 1px solid var(--linea);
+  padding: 0.05em 0.3em;
+}
+
+/* Nota al margen: en móvil es una caja con borde izquierdo;
+   en pantallas grandes se va a la columna de la derecha (ver sección 12). */
+.nota-margen {
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--tinta-suave);
+  background: var(--papel-2);
+  border-left: 3px solid var(--acento-2);
+  padding: 0.75rem 1rem;
+  margin: 1.5rem 0;
+}
+.nota-margen strong {
+  display: block;
+  font-family: var(--f-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--acento-2);
+  margin-bottom: 0.3rem;
+}
+
+
+/* 7. CÓDIGO SQL Y RESALTADO -------------------------------------------------
+   El resaltado se hace a mano con <span class="kw|str|com|num|fn">, sin
+   librerías externas. Así funciona sin internet y pasa el validador.     */
+.codigo {
+  margin: 1.5rem 0;
+  border: 1px solid var(--tinta);
+}
+/* Franja superior con el nombre del archivo */
+.codigo-titulo {
+  font-family: var(--f-mono);
+  font-size: 0.75rem;
+  color: var(--tinta-suave);
+  background: var(--papel-2);
+  border-bottom: 1px solid var(--tinta);
+  padding: 0.35rem 0.75rem;
+}
+.codigo pre {
+  margin: 0;
+  padding: 1rem;
+  overflow-x: auto;             /* en móvil el código hace scroll, la página no */
+  background: var(--codigo-fondo);
+  color: var(--codigo-texto);
+  font-family: var(--f-mono);
+  font-size: 0.82rem;
+  line-height: 1.6;
+  tab-size: 2;
+}
+.codigo code { font-family: inherit; }
+
+.kw  { color: var(--tk-kw); }
+.str { color: var(--tk-str); }
+.com { color: var(--tk-com); font-style: italic; }
+.num { color: var(--tk-num); }
+.fn  { color: var(--tk-fn); }
+
+/* Variante para código "malo" (lo que no hay que hacer) */
+.codigo--mal { border-color: var(--acento); }
+.codigo--mal .codigo-titulo { color: var(--acento); border-bottom-color: var(--acento); }
+
+
+/* 8. FIGURAS, TABLAS Y VIDEO ------------------------------------------------ */
+figure { margin: 2rem 0; }
+figure img { width: 100%; height: auto; border: 1px solid var(--linea); background: #fff; }
+figcaption {
+  font-family: var(--f-mono);
+  font-size: 0.78rem;
+  color: var(--tinta-suave);
+  margin-top: 0.5rem;
+}
+
+/* Los SVG propios tienen fondo blanco; en modo oscuro se baja un poco el brillo */
+:root[data-theme="dark"] figure img { filter: brightness(0.9); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) figure img { filter: brightness(0.9); }
+}
+
+/* Foto de la página "Sobre mí": marco tipo foto impresa, levemente girada */
+.retrato {
+  max-width: 16rem;
+  margin: 0 0 2rem;
+  background: #fff;
+  padding: 0.6rem 0.6rem 0.4rem;
+  border: 1px solid var(--linea);
+  transform: rotate(-1.5deg);
+}
+.retrato img { border: 0; width: 100%; height: auto; }
+
+.tabla-scroll { overflow-x: auto; margin: 1.5rem 0; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+th, td {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--linea);
+  vertical-align: top;
+}
+th {
+  font-family: var(--f-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid var(--tinta);
+}
+
+/* Video de YouTube responsive: la caja mantiene 16:9 en cualquier ancho */
+.video {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  border: 1px solid var(--tinta);
+  background: #000;
+}
+.video iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+
+/* 9. NAVEGACIÓN ENTRE ENTRADAS --------------------------------------------- */
+.entre-entradas {
+  max-width: var(--ancho-texto);
+  margin: 3rem 0 2rem;
+  border-top: 1px solid var(--tinta);
+  padding-top: 1rem;
+  display: grid;
+  gap: 1rem;
+}
+.entre-entradas a {
+  display: block;
+  text-decoration: none;
+  color: var(--tinta);
+  border: 1px solid var(--linea);
+  padding: 0.75rem 1rem;
+}
+.entre-entradas a:hover { border-color: var(--tinta); }
+.entre-entradas small {
+  display: block;
+  font-family: var(--f-mono);
+  font-size: 0.75rem;
+  color: var(--acento);
+  margin-bottom: 0.2rem;
+}
+.entre-entradas .siguiente { text-align: right; }
+.volver {
+  font-family: var(--f-mono);
+  font-size: 0.85rem;
+}
+
+
+/* 10. PIE DE PÁGINA --------------------------------------------------------- */
+/* <sitio-pie> es el componente de js/main.js; los elementos propios son
+   "inline" por defecto, así que se le dice que se comporte como bloque. */
+sitio-pie { display: block; }
+
+.sitio-pie {
+  border-top: 3px double var(--tinta);
+  margin-top: 3rem;
+  padding: 1.25rem 0 2rem;
+  font-family: var(--f-mono);
+  font-size: 0.75rem;
+  color: var(--tinta-suave);
+}
+.sitio-pie p { margin: 0 0 0.35rem; }
+
+
+/* 11. UTILIDADES Y ACCESIBILIDAD ------------------------------------------- */
+/* Enlace "saltar al contenido": invisible hasta que se navega con teclado */
+.saltar {
+  position: absolute;
+  left: -999px;
+  top: 0;
+  background: var(--tinta);
+  color: var(--papel);
+  padding: 0.5rem 1rem;
+  z-index: 10;
+}
+.saltar:focus { left: 0; }
+
+:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+
+/* Si el usuario pidió menos animación, se respeta */
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}
+
+
+/* 12. PANTALLAS MEDIANAS Y GRANDES ---------------------------------------- */
+@media (min-width: 48rem) {               /* desde 768px */
+  :root { --gutter: 2rem; }
+  h1 { font-size: 2.6rem; }
+  .presentacion h1 { font-size: 2.8rem; }
+
+  .sitio-cabecera .contenedor {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+
+  .fichas { grid-template-columns: repeat(2, 1fr); }
+
+  .presentacion--foto { grid-template-columns: minmax(0, 1fr) 13rem; align-items: center; column-gap: 3rem; }
+  .retrato.retrato--inicio { max-width: 13rem; justify-self: end; }
+
+  .entre-entradas { grid-template-columns: 1fr 1fr; }
+}
+
+@media (min-width: 68rem) {               /* desde ~1090px */
+  .fichas { grid-template-columns: repeat(3, 1fr); }
+
+  /* La entrada pasa a dos columnas: texto + margen para notas */
+  .entrada-cuerpo {
+    max-width: none;
+    display: grid;
+    grid-template-columns: minmax(0, var(--ancho-texto)) 15rem;
+    column-gap: 3rem;
+  }
+  .entrada-cuerpo > * { grid-column: 1; }
+  /* En "Sobre mí" la foto va en la columna derecha */
+  .entrada-cuerpo > .retrato {
+    grid-column: 2;
+    grid-row: 1 / span 4;
+    align-self: start;
+  }
+  .entrada-cuerpo > .nota-margen {
+    grid-column: 2;
+    grid-row: span 3;              /* queda al lado del párrafo que la precede en el HTML */
+    align-self: start;
+    margin-top: 0.3rem;
+    background: none;
+    padding: 0 0 0 1rem;
+  }
+  /* Nota que se queda dentro del texto (cuando la columna derecha ya está ocupada) */
+  .entrada-cuerpo > .nota-margen.nota-inline {
+    grid-column: 1;
+    grid-row: auto;
+    background: var(--papel-2);
+    padding: 0.75rem 1rem;
+  }
+}

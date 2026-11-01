@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>El cursor que tumbó un batch a las 3 a.m. | Diario de un DBA empírico</title>
+  <meta name="description" content="Cursores explícitos frente a BULK COLLECT y FORALL, contado desde un batch nocturno de facturación.">
+
+  <!-- Favicon: iniciales FB -->
+  <link rel="icon" href="../img/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="../img/apple-touch-icon.png">
+
+  <!-- Tipografías -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,700;1,8..60,400&amp;display=swap">
+
+  <link rel="stylesheet" href="../css/styles.css">
+  <script src="../js/main.js"></script>
+</head>
+<body>
+  <a class="saltar" href="#contenido">Saltar al contenido</a>
+
+  <header class="sitio-cabecera">
+    <div class="contenedor">
+      <a class="marca" href="../index.html">
+        <span class="marca-nombre">Diario de un DBA empírico</span>
+        <span class="marca-sub">11 años en producción · Oracle · PL/SQL</span>
+      </a>
+      <nav class="menu" aria-label="Menú principal">
+        <ul>
+          <li><a href="../index.html">Inicio</a></li>
+          <li><a href="../index.html#entradas">Entradas</a></li>
+          <li><a href="../about.html">Sobre mí</a></li>
+          <li><button class="btn-tema" type="button">modo noche</button></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="contenido" class="contenedor">
+    <article class="entrada">
+      <header class="entrada-cabecera">
+        <span class="antetitulo">Entrada Nº 01</span>
+        <h1>El cursor que tumbó un batch a las 3 a.m.</h1>
+        <p class="entrada-meta">
+          <span>publicado: 2026-10-31</span>
+          <span>lectura: 4 min</span>
+          <span>tags: pl/sql, rendimiento, bulk collect</span>
+        </p>
+      </header>
+
+      <div class="entrada-cuerpo">
+        <!-- REVISAR (Felipe): los tres primeros párrafos cuentan la noche en términos generales.
+             Cámbialos con lo que pasó de verdad: qué proceso era, cómo te enteraste, qué viste. -->
+        <p>En soporte 7x24 uno aprende rápido que el celular sonando a las 3 de la mañana nunca trae buenas noticias. Esa vez el aviso era el de siempre: el batch nocturno no había terminado y quedaba poco tiempo antes de que arrancara la operación del día.</p>
+
+        <p>No voy a contar de qué sistema se trataba, pero el culpable sí, porque es de los más comunes que me he encontrado: un cursor que recorría una tabla grande fila por fila y, en cada vuelta, hacía un <code>INSERT</code>. Con el volumen de cuando se escribió, el proceso terminaba con tiempo de sobra. Con el volumen de esa noche, no.</p>
+
+        <p>Lo curioso es que el código no tenía ningún error. Compilaba y hacía exactamente lo que tenía que hacer. El problema era cómo lo hacía.</p>
+
+        <h2>Un viaje por cada fila</h2>
+        <p>Dentro de Oracle conviven dos motores: el de PL/SQL, que ejecuta tu lógica (los <code>IF</code>, los <code>LOOP</code>, las variables), y el de SQL, que es el que de verdad lee y escribe en las tablas. Cada vez que el código PL/SQL le pide algo a SQL hay un <em>cambio de contexto</em>: el control pasa de un motor al otro y vuelve. Un cambio de contexto cuesta poco. Doscientos mil ya no tanto.</p>
+
+        <figure>
+          <img src="../img/cursor-vs-bulk.svg" alt="Diagrama: arriba, el motor PL/SQL y el motor SQL intercambian un mensaje por cada fila; abajo, con BULK COLLECT y FORALL viaja un lote completo en cada cambio de contexto." width="760" height="440">
+          <figcaption>Fig. 1. Fila a fila, cada registro es un viaje. Por lotes, mil registros viajan juntos.</figcaption>
+        </figure>
+
+        <p>Así se ve el patrón sobre el esquema ficticio que uso en el blog, copiando los consumos a una tabla <code>CONSUMOS_CARGA</code> con un impuesto calculado:</p>
+
+        <div class="codigo codigo--mal">
+          <div class="codigo-titulo">-- fila a fila: dos viajes por registro</div>
+<pre><code><span class="kw">DECLARE</span>
+  <span class="kw">CURSOR</span> c_consumos <span class="kw">IS</span>
+    <span class="kw">SELECT</span> id_consumo, id_cliente, fecha_consumo, tipo, valor
+      <span class="kw">FROM</span> consumos;
+  r c_consumos<span class="kw">%ROWTYPE</span>;
+<span class="kw">BEGIN</span>
+  <span class="kw">OPEN</span> c_consumos;
+  <span class="kw">LOOP</span>
+    <span class="kw">FETCH</span> c_consumos <span class="kw">INTO</span> r;          <span class="com">-- viaje 1: trae una fila</span>
+    <span class="kw">EXIT WHEN</span> c_consumos<span class="kw">%NOTFOUND</span>;
+
+    <span class="kw">INSERT INTO</span> consumos_carga         <span class="com">-- viaje 2: inserta una fila</span>
+      (id_consumo, id_cliente, fecha_consumo, tipo, valor, valor_total)
+    <span class="kw">VALUES</span>
+      (r.id_consumo, r.id_cliente, r.fecha_consumo, r.tipo, r.valor,
+       <span class="fn">ROUND</span>(r.valor * <span class="num">1.19</span>, <span class="num">2</span>));
+  <span class="kw">END LOOP</span>;
+  <span class="kw">CLOSE</span> c_consumos;
+  <span class="kw">COMMIT</span>;
+<span class="kw">END</span>;
+/</code></pre>
+        </div>
+
+        <p>Cada <code>FETCH</code> es un viaje y cada <code>INSERT</code> es otro. Si además alguien dejó un <code>COMMIT</code> dentro del loop, súmele el costo de confirmar fila por fila.</p>
+
+        <aside class="nota-margen">
+          <strong>Un detalle</strong>
+          Desde Oracle 10g, un <code>FOR r IN (SELECT ...) LOOP</code> trae las filas de a 100 por debajo. El <code>FETCH</code> explícito de una fila no tiene esa ayuda, y los <code>INSERT</code> del loop tampoco.
+        </aside>
+
+        <h2>Mover lotes, no filas</h2>
+        <p><code>BULK COLLECT</code> trae muchas filas en un solo viaje y las guarda en una colección. <code>FORALL</code> hace lo contrario: manda la colección completa al motor SQL de una vez. La lógica es la misma y el código cambia poco:</p>
+
+        <div class="codigo">
+          <div class="codigo-titulo">-- por lotes: dos viajes cada mil registros</div>
+<pre><code><span class="kw">DECLARE</span>
+  <span class="kw">CURSOR</span> c_consumos <span class="kw">IS</span>
+    <span class="kw">SELECT</span> id_consumo, id_cliente, fecha_consumo, tipo, valor
+      <span class="kw">FROM</span> consumos;
+  <span class="kw">TYPE</span> t_consumos <span class="kw">IS TABLE OF</span> c_consumos<span class="kw">%ROWTYPE</span>;
+  l_lote t_consumos;
+<span class="kw">BEGIN</span>
+  <span class="kw">OPEN</span> c_consumos;
+  <span class="kw">LOOP</span>
+    <span class="kw">FETCH</span> c_consumos <span class="kw">BULK COLLECT INTO</span> l_lote <span class="kw">LIMIT</span> <span class="num">1000</span>;
+    <span class="kw">EXIT WHEN</span> l_lote.<span class="fn">COUNT</span> = <span class="num">0</span>;
+
+    <span class="kw">FORALL</span> i <span class="kw">IN</span> <span class="num">1</span> .. l_lote.<span class="fn">COUNT</span>
+      <span class="kw">INSERT INTO</span> consumos_carga
+        (id_consumo, id_cliente, fecha_consumo, tipo, valor, valor_total)
+      <span class="kw">VALUES</span>
+        (l_lote(i).id_consumo, l_lote(i).id_cliente, l_lote(i).fecha_consumo,
+         l_lote(i).tipo, l_lote(i).valor, <span class="fn">ROUND</span>(l_lote(i).valor * <span class="num">1.19</span>, <span class="num">2</span>));
+  <span class="kw">END LOOP</span>;
+  <span class="kw">CLOSE</span> c_consumos;
+  <span class="kw">COMMIT</span>;
+<span class="kw">END</span>;
+/</code></pre>
+        </div>
+
+        <p>Hay dos detalles en ese código que no son decoración.</p>
+
+        <p>El primero es el <code>LIMIT</code>. Sin él, <code>BULK COLLECT</code> intenta meter toda la tabla en memoria de una vez. Con doscientas mil filas puede que aguante; con unos cuantos millones, el que se cae ahora es el servidor. Lotes de entre 100 y 1.000 filas son un buen punto de partida.</p>
+
+        <p>El segundo es la salida del loop: <code>EXIT WHEN l_lote.COUNT = 0</code> y no <code>%NOTFOUND</code> justo después del <code>FETCH</code>. Con <code>LIMIT</code>, <code>%NOTFOUND</code> se vuelve verdadero cuando el último lote llega incompleto, así que si preguntas por él en ese punto te sales sin procesar las últimas filas. No sale ningún error. Simplemente faltan datos, que es la peor clase de bug.</p>
+
+        <p>Esa trampa es tan común que Steven Feuerstein le dedica una lámina completa en este video sobre <code>BULK COLLECT</code>:</p>
+        <div class="video">
+          <iframe src="https://www.youtube-nocookie.com/embed/NSx594bQOQY" title="BLK2: Get Data Faster with BULK COLLECT, de Steven Feuerstein" loading="lazy" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+        </div>
+        <p class="entrada-meta">Video: «BLK2: Get Data Faster with BULK COLLECT», Steven Feuerstein, canal Practically Perfect PL/SQL (YouTube).</p>
+
+        <h2>No me crean a mí</h2>
+        <p>En la carpeta <a href="../sql/setup_demo.sql">sql/</a> del blog dejé los scripts para probarlo. <a href="../sql/setup_demo.sql">setup_demo.sql</a> crea el esquema con 50.000 consumos inventados y <a href="../sql/demo_cursor.sql">demo_cursor.sql</a> hace la misma carga de las dos maneras con <code>SET TIMING ON</code>. Yo lo corrí en Oracle FreeSQL, con una versión reducida del esquema de 50.000 consumos: fila a fila me tardó 0,79 segundos y por lotes, 0,05. Unas dieciséis veces más rápido, y eso con una tabla de juguete. Multiplica por los millones de filas de un batch de facturación real y entiendes por qué esa noche no alcanzó la ventana.</p>
+
+        <figure>
+          <img src="../img/cursor-tiempos.png" alt="Pantallazo de Oracle FreeSQL: el bloque PL/SQL con la carga por lotes y, en la pestaña DBMS Output, los tiempos medidos: fila a fila 0,79 segundos y BULK COLLECT más FORALL 0,05 segundos." width="1400" height="560" loading="lazy">
+          <figcaption>Fig. 2. Mi corrida en FreeSQL con 50.000 consumos: 0,79 s fila a fila contra 0,05 s por lotes.</figcaption>
+        </figure>
+
+
+        <h2>¿Entonces nunca más un cursor?</h2>
+        <p>Tampoco. Si el volumen es pequeño, o si cada fila necesita una lógica enredada con llamadas a otros procedimientos, el cursor normal se lee y se mantiene mejor, y eso también cuenta. Y hay una opción que le gana a las dos: si la carga se puede escribir como un solo <code>INSERT ... SELECT</code>, no hace falta PL/SQL para nada.</p>
+
+        <div class="codigo">
+          <div class="codigo-titulo">-- sin loop: todo en el motor SQL</div>
+<pre><code><span class="kw">INSERT INTO</span> consumos_carga
+  (id_consumo, id_cliente, fecha_consumo, tipo, valor, valor_total)
+<span class="kw">SELECT</span> id_consumo, id_cliente, fecha_consumo, tipo, valor,
+       <span class="fn">ROUND</span>(valor * <span class="num">1.19</span>, <span class="num">2</span>)
+  <span class="kw">FROM</span> consumos;</code></pre>
+        </div>
+
+        <p>Ni un solo cambio de contexto. Si necesitas que el <code>FORALL</code> no se detenga con la primera fila que falla, existe <code>SAVE EXCEPTIONS</code>, pero eso ya entra en el terreno de los errores, que es tema de la <a href="errores-plsql.html">entrada 3</a>.</p>
+
+        <h2>Lo que me quedó</h2>
+        <!-- REVISAR (Felipe): ajusta esta regla si la tuya es distinta. -->
+        <p>Desde entonces, cuando reviso un proceso PL/SQL, lo primero que busco es un <code>LOOP</code> con un <code>INSERT</code>, <code>UPDATE</code> o <code>DELETE</code> adentro. Y me hago tres preguntas en orden: ¿esto se puede hacer en un solo SQL? Si no, ¿se puede hacer por lotes? Solo si las dos respuestas son no, lo dejo fila a fila.</p>
+
+      </div>
+
+      <!-- Navegación entre entradas -->
+      <nav class="entre-entradas" aria-label="Navegación entre entradas">
+        <a class="anterior" href="../index.html"><small>← inicio</small>Todas las entradas</a>
+        <a class="siguiente" href="indices-mas-es-peor.html"><small>siguiente →</small>Índices: cuando "más" es peor</a>
+      </nav>
+      <p class="volver"><a href="../index.html">↑ Volver al inicio</a></p>
+    </article>
+  </main>
+
+  <!-- PIE DE PÁGINA: componente compartido, definido en js/main.js -->
+  <sitio-pie></sitio-pie>
+</body>
+</html>

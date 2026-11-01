@@ -1,0 +1,10 @@
+# Configuración local de Vercel
+.vercel
+.env*
+
+# Archivos del sistema
+.DS_Store
+
+# Originales que no se publican: foto sin recortar y pantallazos completos
+img/yo.jpeg
+evidencias/

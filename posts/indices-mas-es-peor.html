@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Índices: cuando "más" es peor | Diario de un DBA empírico</title>
+  <meta name="description" content="Índices, planes de ejecución y los casos en los que conviene no indexar.">
+
+  <!-- Favicon: iniciales FB -->
+  <link rel="icon" href="../img/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="../img/apple-touch-icon.png">
+
+  <!-- Tipografías -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,700;1,8..60,400&amp;display=swap">
+
+  <link rel="stylesheet" href="../css/styles.css">
+  <script src="../js/main.js"></script>
+</head>
+<body>
+  <a class="saltar" href="#contenido">Saltar al contenido</a>
+
+  <header class="sitio-cabecera">
+    <div class="contenedor">
+      <a class="marca" href="../index.html">
+        <span class="marca-nombre">Diario de un DBA empírico</span>
+        <span class="marca-sub">11 años en producción · Oracle · PL/SQL</span>
+      </a>
+      <nav class="menu" aria-label="Menú principal">
+        <ul>
+          <li><a href="../index.html">Inicio</a></li>
+          <li><a href="../index.html#entradas">Entradas</a></li>
+          <li><a href="../about.html">Sobre mí</a></li>
+          <li><button class="btn-tema" type="button">modo noche</button></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="contenido" class="contenedor">
+    <article class="entrada">
+      <header class="entrada-cabecera">
+        <span class="antetitulo">Entrada Nº 02</span>
+        <h1>Índices: cuando "más" es peor</h1>
+        <p class="entrada-meta">
+          <span>publicado: 2026-10-31</span>
+          <span>lectura: 5 min</span>
+          <span>tags: índices, planes de ejecución</span>
+        </p>
+      </header>
+
+      <div class="entrada-cuerpo">
+        <p>Cuando una consulta se pone lenta, la primera propuesta que escucho casi siempre es la misma: «pongámosle un índice». A veces es la respuesta correcta. Otras veces es como echarle agua a una sopa salada: parece que ayuda y termina dañando todo.</p>
+
+        <!-- REVISAR (Felipe): este párrafo resume tu experiencia en general. Si tienes un caso concreto (sin nombres), cámbialo por ese. -->
+        <p>En estos años de soporte me he topado con tablas con más índices que columnas, con cargas nocturnas que se volvían más lentas cada mes sin que nadie supiera por qué, y con consultas que seguían haciendo <em>full scan</em> con su índice recién creado al lado. Esta entrada es lo que me hubiera gustado que alguien me explicara al principio.</p>
+
+        <h2>Qué es un índice, en dos minutos</h2>
+        <p>Un índice B-tree funciona como el índice alfabético al final de un libro. En vez de leer todas las páginas buscando una palabra, vas al índice, encuentras la palabra y te dice en qué página está. En Oracle, la «página» es el <code>ROWID</code>: la dirección física de la fila dentro de la tabla.</p>
+
+        <p>El índice está organizado por niveles. Arriba hay un bloque raíz, en el medio unos bloques rama que se reparten los rangos de valores, y abajo las hojas, que guardan cada valor con su <code>ROWID</code>. Para encontrar un valor, Oracle baja por el árbol en tres o cuatro saltos aunque la tabla tenga millones de filas.</p>
+
+        <figure>
+          <img src="../img/indice-btree.svg" alt="Diagrama de un índice B-tree: la búsqueda de id_cliente 1234 baja de la raíz a una rama y a una hoja, y de ahí los ROWID llevan directo a tres bloques de la tabla CONSUMOS." width="760" height="430">
+          <figcaption>Fig. 1. Buscar un cliente: tres saltos en el índice y directo a los bloques de la tabla.</figcaption>
+        </figure>
+
+        <h2>Cuándo sí ayuda</h2>
+        <p>El caso típico: los consumos de un cliente. En el esquema de prueba hay 50.000 consumos repartidos entre 5.000 clientes, así que a cada cliente le tocan 10 filas. Para ver qué piensa hacer Oracle uso <code>EXPLAIN PLAN</code>:</p>
+
+        <div class="codigo">
+          <div class="codigo-titulo">-- demo_indices.sql (fragmento)</div>
+<pre><code><span class="kw">EXPLAIN PLAN SET</span> STATEMENT_ID = <span class="str">'demo_antes'</span> <span class="kw">FOR</span>
+  <span class="kw">SELECT</span> id_consumo, fecha_consumo, tipo, valor
+    <span class="kw">FROM</span> consumos
+   <span class="kw">WHERE</span> id_cliente = <span class="num">1234</span>;
+
+<span class="kw">SELECT</span> * <span class="kw">FROM TABLE</span>(<span class="fn">DBMS_XPLAN.DISPLAY</span>(<span class="str">'PLAN_TABLE'</span>, <span class="str">'demo_antes'</span>));
+
+<span class="com">-- Se crea el índice y se repite el EXPLAIN PLAN</span>
+<span class="kw">CREATE INDEX</span> idx_consumos_cliente <span class="kw">ON</span> consumos (id_cliente);</code></pre>
+        </div>
+
+        <p>Sin índice, el plan muestra <code>TABLE ACCESS FULL</code>: Oracle lee la tabla completa para quedarse con 10 filas. Con el índice, el mismo plan cambia a <code>INDEX RANGE SCAN</code> seguido de <code>TABLE ACCESS BY INDEX ROWID BATCHED</code>. Baja por el árbol, encuentra las 10 entradas y va directo a esas filas. En mi corrida en FreeSQL el costo estimado pasó de 102 a 11: casi diez veces menos, para la misma consulta y el mismo resultado.</p>
+
+        <figure>
+          <img src="../img/plan-antes.png" alt="Pantallazo de Oracle FreeSQL: plan de ejecución de SELECT sobre CONSUMOS filtrando id_cliente 1234, con la operación TABLE ACCESS FULL y costo 102." width="1400" height="713" loading="lazy">
+          <figcaption>Fig. 2. Antes del índice: TABLE ACCESS FULL, costo 102.</figcaption>
+        </figure>
+
+        <figure>
+          <img src="../img/plan-despues.png" alt="Pantallazo de Oracle FreeSQL: el mismo plan después de crear IDX_CONSUMOS_CLIENTE, con INDEX RANGE SCAN y TABLE ACCESS BY INDEX ROWID BATCHED, costo 11." width="1400" height="713" loading="lazy">
+          <figcaption>Fig. 3. Después del índice: INDEX RANGE SCAN, costo 11.</figcaption>
+        </figure>
+
+        <aside class="nota-margen">
+          <strong>Ojo</strong>
+          <code>EXPLAIN PLAN</code> no ejecuta la consulta: muestra lo que Oracle planea hacer. Para ver lo que hizo de verdad, ejecútala y usa <code>DBMS_XPLAN.DISPLAY_CURSOR</code>.
+        </aside>
+
+
+        <p>De paso, <code>ID_CLIENTE</code> es llave foránea. Una llave foránea sin índice obliga a Oracle a bloquear la tabla hija completa cuando se borra o se actualiza la llave en la tabla padre. Ese bloqueo es de los que aparecen en producción a la peor hora posible.</p>
+
+        <h2>Cuándo el índice estorba</h2>
+        <p>Aquí viene la parte que le da el título a la entrada.</p>
+
+        <p><strong>Un índice que no filtra no sirve.</strong> En <code>CONSUMOS</code>, cerca del 90 % de las filas están en estado <code>FACTURADO</code>. Si creas un índice sobre <code>ESTADO</code> y buscas las facturadas, Oracle lo ignora y hace <em>full scan</em>, y tiene razón: saltar del índice a la tabla 45.000 veces, bloque por bloque, cuesta más que leer la tabla de corrido. Con ese mismo índice, buscar las pocas filas en <code>ERROR</code> sí lo usa. Mismo índice, distinto valor, distinta decisión. Para que el optimizador distinga los dos casos necesita estadísticas con histograma sobre la columna; sin eso, asume que los valores están repartidos parejo.</p>
+
+        <p><strong>Cada índice se paga en cada escritura.</strong> Un <code>INSERT</code> en una tabla con seis índices no es una escritura: son siete. Lo mismo con los <code>DELETE</code> y con los <code>UPDATE</code> que tocan columnas indexadas. En una operación de facturación donde los procesos nocturnos insertan muchísimas filas, cada índice «por si acaso» se cobra en la ventana del batch, todas las noches.</p>
+
+        <p><strong>Hay índices que existen pero no se pueden usar.</strong> Si la consulta envuelve la columna en una función, el índice normal sobre esa columna deja de servir. La solución casi nunca es otro índice; es reescribir el <code>WHERE</code>:</p>
+
+        <div class="codigo codigo--mal">
+          <div class="codigo-titulo">-- el índice sobre fecha_consumo no se usa</div>
+<pre><code><span class="kw">SELECT</span> * <span class="kw">FROM</span> consumos
+ <span class="kw">WHERE</span> <span class="fn">TRUNC</span>(fecha_consumo) = <span class="kw">DATE</span> <span class="str">'2026-09-15'</span>;</code></pre>
+        </div>
+
+        <div class="codigo">
+          <div class="codigo-titulo">-- mismo resultado, y el índice sí sirve</div>
+<pre><code><span class="kw">SELECT</span> * <span class="kw">FROM</span> consumos
+ <span class="kw">WHERE</span> fecha_consumo &gt;= <span class="kw">DATE</span> <span class="str">'2026-09-15'</span>
+   <span class="kw">AND</span> fecha_consumo &lt;  <span class="kw">DATE</span> <span class="str">'2026-09-16'</span>;</code></pre>
+        </div>
+
+        <p>Lo mismo pasa cuando comparas una columna <code>VARCHAR2</code> contra un número y Oracle hace una conversión implícita por debajo. El índice está ahí, pero la consulta no lo puede aprovechar.</p>
+
+        <h2>Una regla rápida</h2>
+        <div class="tabla-scroll">
+          <table>
+            <thead>
+              <tr><th>Situación</th><th>¿Indexar?</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Columna del <code>WHERE</code> con pocas filas por valor</td><td>Sí</td></tr>
+              <tr><td>Llave foránea</td><td>Casi siempre</td></tr>
+              <tr><td>Columna con dos o tres valores muy repetidos</td><td>Normalmente no</td></tr>
+              <tr><td>Tabla pequeña, de pocos bloques</td><td>No hace falta</td></tr>
+              <tr><td>Tabla con cargas masivas todas las noches</td><td>Con mucho cuidado</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2>Antes de crear un índice</h2>
+        <!-- REVISAR (Felipe): ajusta si tu costumbre es otra. -->
+        <p>Antes de crear un índice, miro el plan. Si después de crearlo el plan no cambia, lo borro. Y cada cierto tiempo vale la pena revisar qué índices nadie usa: Oracle puede llevar ese registro con <code>ALTER INDEX ... MONITORING USAGE</code> o, desde la 12.2, con la vista <code>DBA_INDEX_USAGE</code>. Siempre aparecen unos cuantos.</p>
+
+        <p>Los scripts completos están en <a href="../sql/demo_indices.sql">sql/demo_indices.sql</a>, incluida la prueba del índice sobre <code>ESTADO</code>.</p>
+
+        <h2>La versión con dulces</h2>
+        <p>Si lo del <em>full scan</em> que le gana al índice todavía suena raro, Chris Saxon, del equipo de Oracle, lo explica con dulces de colores. Literal:</p>
+        <div class="video">
+          <iframe src="https://www.youtube-nocookie.com/embed/Rlgb7LwOiHk" title="A Story of Indexes and Full Table Scans, de Chris Saxon" loading="lazy" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+        </div>
+        <p class="entrada-meta">Video: «A Story of Indexes and Full Table Scans: Finding All the Red Sweets, Part 1», Chris Saxon, canal The Magic of SQL (YouTube).</p>
+      </div>
+
+      <!-- Navegación entre entradas -->
+      <nav class="entre-entradas" aria-label="Navegación entre entradas">
+        <a class="anterior" href="cursor-batch-3am.html"><small>← anterior</small>El cursor que tumbó un batch a las 3 a.m.</a>
+        <a class="siguiente" href="errores-plsql.html"><small>siguiente →</small>Errores de PL/SQL que todos cometemos (y yo también)</a>
+      </nav>
+      <p class="volver"><a href="../index.html">↑ Volver al inicio</a></p>
+    </article>
+  </main>
+
+  <!-- PIE DE PÁGINA: componente compartido, definido en js/main.js -->
+  <sitio-pie></sitio-pie>
+</body>
+</html>

@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 440" role="img" aria-labelledby="t d">
+  <title id="t">Cursor fila a fila frente a BULK COLLECT y FORALL</title>
+  <desc id="d">Arriba, el motor PL/SQL y el motor SQL intercambian un mensaje por cada fila: muchos cambios de contexto. Abajo, con BULK COLLECT y FORALL, viaja un lote completo en cada cambio de contexto.</desc>
+
+  <!-- Fondo blanco y estilos comunes -->
+  <rect width="760" height="440" fill="#ffffff"/>
+  <style>
+    .caja { fill: none; stroke: #22201c; stroke-width: 1.5; }
+    .txt  { font-family: "IBM Plex Mono", "Courier New", monospace; font-size: 13px; fill: #22201c; }
+    .peq  { font-family: "IBM Plex Mono", "Courier New", monospace; font-size: 11px; fill: #5f594f; }
+    .tit  { font-family: Georgia, "Times New Roman", serif; font-size: 17px; font-weight: 700; fill: #22201c; }
+    .fila { stroke: #b5441b; stroke-width: 1.2; }
+    .lote { stroke: #2f5d50; stroke-width: 7; }
+  </style>
+  <defs>
+    <marker id="pr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 0 L8 4 L0 8 z" fill="#b5441b"/>
+    </marker>
+    <marker id="pv" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="3.5" markerHeight="3.5" orient="auto">
+      <path d="M0 0 L8 4 L0 8 z" fill="#2f5d50"/>
+    </marker>
+  </defs>
+
+  <!-- ============ PARTE 1: cursor fila a fila ============ -->
+  <text class="tit" x="30" y="38">1. Cursor fila a fila</text>
+  <rect class="caja" x="30" y="58" width="170" height="130"/>
+  <text class="txt" x="115" y="118" text-anchor="middle">motor</text>
+  <text class="txt" x="115" y="136" text-anchor="middle">PL/SQL</text>
+  <rect class="caja" x="560" y="58" width="170" height="130"/>
+  <text class="txt" x="645" y="118" text-anchor="middle">motor</text>
+  <text class="txt" x="645" y="136" text-anchor="middle">SQL</text>
+
+  <!-- Una flecha por fila: ida y vuelta, una y otra vez -->
+  <g marker-end="url(#pr)">
+    <line class="fila" x1="205" y1="70"  x2="553" y2="70"/>
+    <line class="fila" x1="553" y1="84"  x2="207" y2="84"/>
+    <line class="fila" x1="205" y1="98"  x2="553" y2="98"/>
+    <line class="fila" x1="553" y1="112" x2="207" y2="112"/>
+    <line class="fila" x1="205" y1="126" x2="553" y2="126"/>
+    <line class="fila" x1="553" y1="140" x2="207" y2="140"/>
+    <line class="fila" x1="205" y1="154" x2="553" y2="154"/>
+    <line class="fila" x1="553" y1="168" x2="207" y2="168"/>
+  </g>
+  <text class="peq" x="380" y="206" text-anchor="middle">un cambio de contexto por cada fila → con millones de filas, millones de viajes</text>
+
+  <line x1="30" y1="230" x2="730" y2="230" stroke="#d3cbbb" stroke-dasharray="4 4"/>
+
+  <!-- ============ PARTE 2: BULK COLLECT + FORALL ============ -->
+  <text class="tit" x="30" y="268">2. BULK COLLECT + FORALL</text>
+  <rect class="caja" x="30" y="288" width="170" height="110"/>
+  <text class="txt" x="115" y="338" text-anchor="middle">motor</text>
+  <text class="txt" x="115" y="356" text-anchor="middle">PL/SQL</text>
+  <rect class="caja" x="560" y="288" width="170" height="110"/>
+  <text class="txt" x="645" y="338" text-anchor="middle">motor</text>
+  <text class="txt" x="645" y="356" text-anchor="middle">SQL</text>
+
+  <!-- Un solo viaje por lote, en cada sentido -->
+  <line class="lote" x1="553" y1="318" x2="215" y2="318" marker-end="url(#pv)"/>
+  <text class="peq" x="380" y="308" text-anchor="middle">BULK COLLECT ... LIMIT 1000  (trae un lote)</text>
+  <line class="lote" x1="207" y1="370" x2="545" y2="370" marker-end="url(#pv)"/>
+  <text class="peq" x="380" y="360" text-anchor="middle">FORALL  (envía el lote entero)</text>
+
+  <text class="peq" x="380" y="424" text-anchor="middle">un cambio de contexto por lote → mil filas en un solo viaje</text>
+</svg>

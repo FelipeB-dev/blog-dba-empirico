@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 360" role="img" aria-labelledby="t d">
+  <title id="t">Transacción principal y transacción autónoma</title>
+  <desc id="d">La transacción principal hace un UPDATE, falla con ORA-01843 y se deshace con ROLLBACK. Antes de eso llama a registrar_error, que corre en una transacción autónoma: inserta en LOG_ERRORES y hace COMMIT, así que el registro sobrevive.</desc>
+
+  <rect width="760" height="360" fill="#ffffff"/>
+  <style>
+    .p   { fill: #f5f2eb; stroke: #22201c; stroke-width: 1.5; }
+    .e   { fill: #fbe9e1; stroke: #b5441b; stroke-width: 2; }
+    .a   { fill: #e6efeb; stroke: #2f5d50; stroke-width: 2; }
+    .x   { fill: #f5f2eb; stroke: #8d867a; stroke-width: 1.5; stroke-dasharray: 5 4; }
+    .txt { font-family: "IBM Plex Mono", "Courier New", monospace; font-size: 12px; fill: #22201c; }
+    .gr  { font-family: "IBM Plex Mono", "Courier New", monospace; font-size: 12px; fill: #8d867a; }
+    .lbl { font-family: "IBM Plex Mono", "Courier New", monospace; font-size: 11px; fill: #5f594f; }
+    .tit { font-family: Georgia, "Times New Roman", serif; font-size: 15px; font-weight: 700; fill: #22201c; }
+    .ln  { stroke: #22201c; stroke-width: 1.5; fill: none; }
+    .lv  { stroke: #2f5d50; stroke-width: 2; fill: none; }
+  </style>
+  <defs>
+    <marker id="m" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 0 L8 4 L0 8 z" fill="#22201c"/>
+    </marker>
+    <marker id="mv" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 0 L8 4 L0 8 z" fill="#2f5d50"/>
+    </marker>
+  </defs>
+
+  <!-- Carril 1: transacción principal -->
+  <text class="tit" x="20" y="34">Transacción principal · facturar_cliente</text>
+  <line x1="20" y1="48" x2="740" y2="48" stroke="#d3cbbb"/>
+
+  <rect class="x" x="20" y="70" width="150" height="56"/>
+  <text class="gr" x="95" y="94" text-anchor="middle">UPDATE consumos</text>
+  <text class="gr" x="95" y="112" text-anchor="middle">(se deshace)</text>
+  <line x1="28" y1="98" x2="162" y2="98" stroke="#8d867a"/>
+
+  <rect class="e" x="210" y="70" width="150" height="56"/>
+  <text class="txt" x="285" y="94" text-anchor="middle">TO_DATE('202613')</text>
+  <text class="txt" x="285" y="112" text-anchor="middle" fill="#b5441b">ORA-01843</text>
+
+  <rect class="p" x="400" y="70" width="150" height="56"/>
+  <text class="txt" x="475" y="94" text-anchor="middle">EXCEPTION</text>
+  <text class="txt" x="475" y="112" text-anchor="middle">registrar… ; RAISE</text>
+
+  <rect class="e" x="590" y="70" width="150" height="56"/>
+  <text class="txt" x="665" y="94" text-anchor="middle">ROLLBACK</text>
+  <text class="lbl" x="665" y="112" text-anchor="middle">nada queda</text>
+
+  <path class="ln" d="M170 98 H205" marker-end="url(#m)"/>
+  <path class="ln" d="M360 98 H395" marker-end="url(#m)"/>
+  <path class="ln" d="M550 98 H585" marker-end="url(#m)"/>
+
+  <!-- Llamada al procedimiento autónomo -->
+  <path class="lv" d="M475 126 V216" marker-end="url(#mv)"/>
+  <text class="lbl" x="485" y="176">llama a registrar_error</text>
+
+  <!-- Carril 2: transacción autónoma -->
+  <text class="tit" x="20" y="200" fill="#2f5d50">Transacción autónoma · registrar_error</text>
+  <line x1="20" y1="208" x2="380" y2="208" stroke="#d3cbbb"/>
+
+  <rect class="a" x="400" y="222" width="150" height="56"/>
+  <text class="txt" x="475" y="246" text-anchor="middle">INSERT INTO</text>
+  <text class="txt" x="475" y="264" text-anchor="middle">log_errores</text>
+
+  <rect class="a" x="590" y="222" width="150" height="56"/>
+  <text class="txt" x="665" y="246" text-anchor="middle">COMMIT</text>
+  <text class="lbl" x="665" y="264" text-anchor="middle">solo del log</text>
+  <path class="lv" d="M550 250 H585" marker-end="url(#mv)"/>
+
+  <text class="lbl" x="380" y="320" text-anchor="middle">El ROLLBACK de arriba no alcanza al COMMIT de abajo:</text>
+  <text class="lbl" x="380" y="338" text-anchor="middle">el proceso queda como estaba y el error queda registrado.</text>
+</svg>

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Errores de PL/SQL que todos cometemos (y yo también) | Diario de un DBA empírico</title>
+  <meta name="description" content="Excepciones, WHEN OTHERS y cómo dejar registro de lo que falló.">
+
+  <!-- Favicon: iniciales FB -->
+  <link rel="icon" href="../img/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="../img/apple-touch-icon.png">
+
+  <!-- Tipografías -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,700;1,8..60,400&amp;display=swap">
+
+  <link rel="stylesheet" href="../css/styles.css">
+  <script src="../js/main.js"></script>
+</head>
+<body>
+  <a class="saltar" href="#contenido">Saltar al contenido</a>
+
+  <header class="sitio-cabecera">
+    <div class="contenedor">
+      <a class="marca" href="../index.html">
+        <span class="marca-nombre">Diario de un DBA empírico</span>
+        <span class="marca-sub">11 años en producción · Oracle · PL/SQL</span>
+      </a>
+      <nav class="menu" aria-label="Menú principal">
+        <ul>
+          <li><a href="../index.html">Inicio</a></li>
+          <li><a href="../index.html#entradas">Entradas</a></li>
+          <li><a href="../about.html">Sobre mí</a></li>
+          <li><button class="btn-tema" type="button">modo noche</button></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="contenido" class="contenedor">
+    <article class="entrada">
+      <header class="entrada-cabecera">
+        <span class="antetitulo">Entrada Nº 03</span>
+        <h1>Errores de PL/SQL que todos cometemos (y yo también)</h1>
+        <p class="entrada-meta">
+          <span>publicado: 2026-10-31</span>
+          <span>lectura: 4 min</span>
+          <span>tags: excepciones, logging, transacciones</span>
+        </p>
+      </header>
+
+      <div class="entrada-cuerpo">
+        <p>Si tuviera que escoger la línea de PL/SQL que más horas de soporte cuesta, sería esta:</p>
+
+        <div class="codigo codigo--mal">
+          <div class="codigo-titulo">-- la línea más peligrosa de PL/SQL</div>
+<pre><code><span class="kw">EXCEPTION</span>
+  <span class="kw">WHEN OTHERS THEN</span>
+    <span class="kw">NULL</span>;</code></pre>
+        </div>
+
+        <!-- REVISAR (Felipe): el "y yo también" del título es tuyo. Si tienes un caso propio que puedas contar, este es el lugar. -->
+        <p>No lanza ningún error, no deja rastro y el proceso termina «bien». El problema aparece días después, cuando alguien pregunta por qué faltan datos y no hay nada que mirar. El título dice «y yo también» porque es cierto: yo también he escrito manejadores de errores de los que no me siento orgulloso. Estos son los cuatro errores que más veo y cómo los corrijo hoy.</p>
+
+        <h2>1. Tragarse el error</h2>
+        <p><code>WHEN OTHERS THEN NULL</code> convierte cualquier falla en un éxito silencioso. Si de verdad hay un error que se puede ignorar, hay que nombrarlo: <code>WHEN NO_DATA_FOUND THEN</code>, o una excepción propia declarada con <code>PRAGMA EXCEPTION_INIT</code>. <code>WHEN OTHERS</code> debería terminar casi siempre en <code>RAISE</code>, después de dejar registro.</p>
+
+        <aside class="nota-margen">
+          <strong>El compilador avisa</strong>
+          Con <code>ALTER SESSION SET PLSQL_WARNINGS = 'ENABLE:ALL'</code>, Oracle muestra la advertencia PLW-06009 cuando un <code>WHEN OTHERS</code> no termina en <code>RAISE</code>.
+        </aside>
+
+        <h2>2. Guardar el log en la misma transacción</h2>
+        <p>Este me parece el más traicionero, porque parece correcto:</p>
+
+        <div class="codigo codigo--mal">
+          <div class="codigo-titulo">-- el registro se pierde con el rollback</div>
+<pre><code><span class="kw">EXCEPTION</span>
+  <span class="kw">WHEN OTHERS THEN</span>
+    <span class="kw">INSERT INTO</span> log_errores (modulo, codigo, mensaje)
+    <span class="kw">VALUES</span> (<span class="str">'FACTURAR_CLIENTE'</span>, <span class="fn">SQLCODE</span>, <span class="str">'falló'</span>);
+    <span class="kw">RAISE</span>;</code></pre>
+        </div>
+
+        <p>El <code>INSERT</code> en el log se ejecuta, pero hace parte de la misma transacción que falló. Cuando el error sube y alguien hace <code>ROLLBACK</code> (o Oracle lo hace solo), el registro se va junto con todo lo demás. El log queda vacío justo cuando más se necesita.</p>
+
+        <p>La solución es una transacción autónoma. Un procedimiento con <code>PRAGMA AUTONOMOUS_TRANSACTION</code> corre en su propia transacción, con su propio <code>COMMIT</code>, independiente de la del proceso que lo llamó:</p>
+
+        <div class="codigo">
+          <div class="codigo-titulo">-- demo_errores.sql: procedimiento de logging</div>
+<pre><code><span class="kw">CREATE OR REPLACE PROCEDURE</span> registrar_error (
+  p_modulo    <span class="kw">IN</span> <span class="fn">VARCHAR2</span>,
+  p_codigo    <span class="kw">IN</span> <span class="fn">NUMBER</span>,
+  p_mensaje   <span class="kw">IN</span> <span class="fn">VARCHAR2</span>,
+  p_contexto  <span class="kw">IN</span> <span class="fn">VARCHAR2</span> <span class="kw">DEFAULT NULL</span>
+) <span class="kw">IS</span>
+  <span class="kw">PRAGMA AUTONOMOUS_TRANSACTION</span>;   <span class="com">-- transacción propia</span>
+<span class="kw">BEGIN</span>
+  <span class="kw">INSERT INTO</span> log_errores (modulo, codigo, mensaje, contexto, traza)
+  <span class="kw">VALUES</span> (p_modulo, p_codigo, p_mensaje, p_contexto,
+          <span class="fn">DBMS_UTILITY.FORMAT_ERROR_BACKTRACE</span>);
+  <span class="kw">COMMIT</span>;                           <span class="com">-- confirma solo el log</span>
+<span class="kw">END</span> registrar_error;
+/</code></pre>
+        </div>
+
+        <figure>
+          <img src="../img/transaccion-autonoma.svg" alt="Diagrama: la transacción principal hace un UPDATE, falla con ORA-01843 y se deshace; antes llama a registrar_error, que corre en una transacción autónoma, inserta en LOG_ERRORES y hace COMMIT." width="760" height="360">
+          <figcaption>Fig. 1. El ROLLBACK del proceso no alcanza al COMMIT del log.</figcaption>
+        </figure>
+
+        <aside class="nota-margen">
+          <strong>Solo para el log</strong>
+          Usar transacciones autónomas para «guardar algo aunque lo demás falle» en datos de negocio es la forma más rápida de dejar la base inconsistente.
+        </aside>
+
+        <h2>3. Registrar sin contexto</h2>
+        <p>Un log que solo dice <code>ORA-01843: not a valid month</code> sirve de poco a las 3 de la mañana. ¿Qué cliente? ¿Qué periodo? ¿En qué línea? <code>SQLERRM</code> no trae esa información. Por eso el procedimiento guarda, además del mensaje, el módulo, los parámetros con los que se estaba trabajando y <code>FORMAT_ERROR_BACKTRACE</code>, que dice la línea exacta donde nació el error:</p>
+
+        <div class="codigo">
+          <div class="codigo-titulo">-- el manejador de facturar_cliente</div>
+<pre><code><span class="kw">EXCEPTION</span>
+  <span class="kw">WHEN OTHERS THEN</span>
+    registrar_error(
+      p_modulo   =&gt; <span class="str">'FACTURAR_CLIENTE'</span>,
+      p_codigo   =&gt; <span class="fn">SQLCODE</span>,
+      p_mensaje  =&gt; <span class="fn">SQLERRM</span>,
+      p_contexto =&gt; <span class="str">'id_cliente='</span> || p_id_cliente || <span class="str">' periodo='</span> || p_periodo);
+    <span class="kw">RAISE</span>;   <span class="com">-- registrar no es lo mismo que manejar</span></code></pre>
+        </div>
+
+        <p>Feuerstein arma un procedimiento de logging muy parecido en esta parte de su serie sobre excepciones, por si lo quieres ver construido paso a paso:</p>
+        <div class="video">
+          <iframe src="https://www.youtube-nocookie.com/embed/ge46-ys9gDk" title="How to Handle Exceptions Properly, Part 3, de Steven Feuerstein" loading="lazy" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+        </div>
+        <p class="entrada-meta">Video: «How to Handle Exceptions Properly – Part 3», Steven Feuerstein, canal Practically Perfect PL/SQL (YouTube).</p>
+
+        <h2>4. Capturar y no volver a lanzar</h2>
+        <p>El último es primo del primero. El manejador registra el error muy juicioso y después no hace <code>RAISE</code>. El log queda perfecto, pero el proceso que llamó cree que todo salió bien y sigue adelante con datos a medias. Si en ese punto no sabes qué hacer con el error, regístralo y déjalo subir: alguien más arriba sí sabrá.</p>
+
+        <p>Una variante de lo mismo es reemplazar el error original por uno genérico con <code>RAISE_APPLICATION_ERROR(-20001, 'Error en facturación')</code>. El mensaje queda bonito, pero se pierden el código y la línea donde empezó todo. Si vas a usarlo, pasa <code>TRUE</code> como tercer parámetro: así Oracle conserva la pila de errores anterior debajo de tu mensaje.</p>
+
+        <h2>La prueba</h2>
+        <p>En <a href="../sql/demo_errores.sql">sql/demo_errores.sql</a> está todo junto: la tabla, el procedimiento de log y un <code>facturar_cliente</code> que falla a propósito con el periodo <code>'202613'</code> (no existe el mes 13) después de haber modificado consumos. Lo corrí en FreeSQL con el cliente 1234: el procedimiento marcó sus consumos como <code>EN_PROCESO</code>, falló en el <code>TO_DATE</code> y el error subió. Después conté los consumos en <code>EN_PROCESO</code> y me dio cero, o sea que el <code>UPDATE</code> se deshizo. Pero en <code>LOG_ERRORES</code> quedó la fila con el código, el mensaje y el contexto exacto.</p>
+
+        <figure>
+          <img src="../img/log-errores.png" alt="Pantallazo de Oracle FreeSQL: tras ejecutar facturar_cliente(1234, '202613'), la tabla LOG_ERRORES muestra el módulo FACTURAR_CLIENTE, el código -1843, el mensaje ORA-01843 de mes no válido y el contexto id_cliente=1234 periodo=202613." width="1400" height="416" loading="lazy">
+          <figcaption>Fig. 2. El proceso se deshizo, pero el error quedó registrado con su contexto.</figcaption>
+        </figure>
+
+
+        <h2>Mi regla, en dos líneas</h2>
+        <!-- REVISAR (Felipe): ajusta con tu propia regla. -->
+        <p>Mi regla hoy es corta: ningún <code>WHEN OTHERS</code> sin registro y sin <code>RAISE</code>, y ningún registro sin contexto. El log no es para el día en que todo funciona. Es para la madrugada en que algo falló y toca entender qué pasó sin poder reproducirlo.</p>
+
+      </div>
+
+      <!-- Navegación entre entradas -->
+      <nav class="entre-entradas" aria-label="Navegación entre entradas">
+        <a class="anterior" href="indices-mas-es-peor.html"><small>← anterior</small>Índices: cuando "más" es peor</a>
+        <a class="siguiente" href="../index.html"><small>inicio →</small>Todas las entradas</a>
+      </nav>
+      <p class="volver"><a href="../index.html">↑ Volver al inicio</a></p>
+    </article>
+  </main>
+
+  <!-- PIE DE PÁGINA: componente compartido, definido en js/main.js -->
+  <sitio-pie></sitio-pie>
+</body>
+</html>
