@@ -408,6 +408,11 @@ figcaption {
   margin-top: 0.5rem;
 }
 
+/* Pantallazos que se abren en tamaño completo al hacer clic */
+.ampliable { display: block; cursor: zoom-in; }
+.ampliable:hover img { border-color: var(--acento); }
+.ampliar { display: block; margin-top: 0.15rem; color: var(--acento); }
+
 /* Los SVG propios tienen fondo blanco; en modo oscuro se baja un poco el brillo */
 :root[data-theme="dark"] figure img { filter: brightness(0.9); }
 @media (prefers-color-scheme: dark) {

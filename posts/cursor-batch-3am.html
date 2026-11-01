@@ -147,8 +147,10 @@
         <p>En la carpeta <a href="../sql/setup_demo.sql">sql/</a> del blog dejé los scripts para probarlo. <a href="../sql/setup_demo.sql">setup_demo.sql</a> crea el esquema con 50.000 consumos inventados y <a href="../sql/demo_cursor.sql">demo_cursor.sql</a> hace la misma carga de las dos maneras con <code>SET TIMING ON</code>. Yo lo corrí en Oracle FreeSQL, con una versión reducida del esquema de 50.000 consumos: fila a fila me tardó 0,79 segundos y por lotes, 0,05. Unas dieciséis veces más rápido, y eso con una tabla de juguete. Multiplica por los millones de filas de un batch de facturación real y entiendes por qué esa noche no alcanzó la ventana.</p>
 
         <figure>
-          <img src="../img/cursor-tiempos.png" alt="Pantallazo de Oracle FreeSQL: el bloque PL/SQL con la carga por lotes y, en la pestaña DBMS Output, los tiempos medidos: fila a fila 0,79 segundos y BULK COLLECT más FORALL 0,05 segundos." width="1400" height="560" loading="lazy">
-          <figcaption>Fig. 2. Mi corrida en FreeSQL con 50.000 consumos: 0,79 s fila a fila contra 0,05 s por lotes.</figcaption>
+          <a class="ampliable" href="../img/cursor-tiempos.png" target="_blank" rel="noopener" title="Abrir la imagen en tamaño completo">
+            <img src="../img/cursor-tiempos.png" alt="Pantallazo de Oracle FreeSQL: el bloque PL/SQL con la carga por lotes y, en la pestaña DBMS Output, los tiempos medidos: fila a fila 0,79 segundos y BULK COLLECT más FORALL 0,05 segundos." width="1400" height="560" loading="lazy">
+          </a>
+          <figcaption>Fig. 2. Mi corrida en FreeSQL con 50.000 consumos: 0,79 s fila a fila contra 0,05 s por lotes.<span class="ampliar">clic para ampliar</span></figcaption>
         </figure>
 
 

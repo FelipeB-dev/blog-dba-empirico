@@ -145,8 +145,10 @@
         <p>En <a href="../sql/demo_errores.sql">sql/demo_errores.sql</a> está todo junto: la tabla, el procedimiento de log y un <code>facturar_cliente</code> que falla a propósito con el periodo <code>'202613'</code> (no existe el mes 13) después de haber modificado consumos. Lo corrí en FreeSQL con el cliente 1234: el procedimiento marcó sus consumos como <code>EN_PROCESO</code>, falló en el <code>TO_DATE</code> y el error subió. Después conté los consumos en <code>EN_PROCESO</code> y me dio cero, o sea que el <code>UPDATE</code> se deshizo. Pero en <code>LOG_ERRORES</code> quedó la fila con el código, el mensaje y el contexto exacto.</p>
 
         <figure>
-          <img src="../img/log-errores.png" alt="Pantallazo de Oracle FreeSQL: tras ejecutar facturar_cliente(1234, '202613'), la tabla LOG_ERRORES muestra el módulo FACTURAR_CLIENTE, el código -1843, el mensaje ORA-01843 de mes no válido y el contexto id_cliente=1234 periodo=202613." width="1400" height="416" loading="lazy">
-          <figcaption>Fig. 2. El proceso se deshizo, pero el error quedó registrado con su contexto.</figcaption>
+          <a class="ampliable" href="../img/log-errores.png" target="_blank" rel="noopener" title="Abrir la imagen en tamaño completo">
+            <img src="../img/log-errores.png" alt="Pantallazo de Oracle FreeSQL: tras ejecutar facturar_cliente(1234, '202613'), la tabla LOG_ERRORES muestra el módulo FACTURAR_CLIENTE, el código -1843, el mensaje ORA-01843 de mes no válido y el contexto id_cliente=1234 periodo=202613." width="1400" height="416" loading="lazy">
+          </a>
+          <figcaption>Fig. 2. El proceso se deshizo, pero el error quedó registrado con su contexto.<span class="ampliar">clic para ampliar</span></figcaption>
         </figure>
 
 

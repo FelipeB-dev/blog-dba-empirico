@@ -85,13 +85,17 @@
         <p>Sin índice, el plan muestra <code>TABLE ACCESS FULL</code>: Oracle lee la tabla completa para quedarse con 10 filas. Con el índice, el mismo plan cambia a <code>INDEX RANGE SCAN</code> seguido de <code>TABLE ACCESS BY INDEX ROWID BATCHED</code>. Baja por el árbol, encuentra las 10 entradas y va directo a esas filas. En mi corrida en FreeSQL el costo estimado pasó de 102 a 11: casi diez veces menos, para la misma consulta y el mismo resultado.</p>
 
         <figure>
-          <img src="../img/plan-antes.png" alt="Pantallazo de Oracle FreeSQL: plan de ejecución de SELECT sobre CONSUMOS filtrando id_cliente 1234, con la operación TABLE ACCESS FULL y costo 102." width="1400" height="713" loading="lazy">
-          <figcaption>Fig. 2. Antes del índice: TABLE ACCESS FULL, costo 102.</figcaption>
+          <a class="ampliable" href="../img/plan-antes.png" target="_blank" rel="noopener" title="Abrir la imagen en tamaño completo">
+            <img src="../img/plan-antes.png" alt="Pantallazo de Oracle FreeSQL: plan de ejecución de SELECT sobre CONSUMOS filtrando id_cliente 1234, con la operación TABLE ACCESS FULL y costo 102." width="1400" height="713" loading="lazy">
+          </a>
+          <figcaption>Fig. 2. Antes del índice: TABLE ACCESS FULL, costo 102.<span class="ampliar">clic para ampliar</span></figcaption>
         </figure>
 
         <figure>
-          <img src="../img/plan-despues.png" alt="Pantallazo de Oracle FreeSQL: el mismo plan después de crear IDX_CONSUMOS_CLIENTE, con INDEX RANGE SCAN y TABLE ACCESS BY INDEX ROWID BATCHED, costo 11." width="1400" height="713" loading="lazy">
-          <figcaption>Fig. 3. Después del índice: INDEX RANGE SCAN, costo 11.</figcaption>
+          <a class="ampliable" href="../img/plan-despues.png" target="_blank" rel="noopener" title="Abrir la imagen en tamaño completo">
+            <img src="../img/plan-despues.png" alt="Pantallazo de Oracle FreeSQL: el mismo plan después de crear IDX_CONSUMOS_CLIENTE, con INDEX RANGE SCAN y TABLE ACCESS BY INDEX ROWID BATCHED, costo 11." width="1400" height="713" loading="lazy">
+          </a>
+          <figcaption>Fig. 3. Después del índice: INDEX RANGE SCAN, costo 11.<span class="ampliar">clic para ampliar</span></figcaption>
         </figure>
 
         <aside class="nota-margen">
